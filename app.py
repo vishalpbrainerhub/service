@@ -102,6 +102,7 @@ async def transcribe_audio_file_route():
 
 
 
+
 @app.route('/transcribe_base64', methods=['POST'])
 async def transcribe_base64_route():
     audio_data_base64 = request.json.get('audio_data', None)
