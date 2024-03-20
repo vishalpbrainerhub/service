@@ -5,7 +5,7 @@ import random
 import base64
 import logging
 from faster_whisper import WhisperModel
-from transformers import AutoProcessor, SeamlessM4TForSpeechToText
+import sys
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,8 +20,6 @@ class AudioTranscriptionService:
         self.compute_type = "float32"
         # Initialize Whisper and Seamless models
         self.model = WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
-        self.processor = AutoProcessor.from_pretrained("facebook/hf-seamless-m4t-medium")
-        self.seamless_model = SeamlessM4TForSpeechToText.from_pretrained("facebook/hf-seamless-m4t-medium")
 
 
     def generate_file_name(self):
@@ -118,4 +116,7 @@ def home():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = sys.argv[1] if len(sys.argv) > 1 else "3000"
+    model_size = sys.argv[2] if len(sys.argv) > 2 else "base"
+    app.run(debug=True, host="0.0.0.0", port=int(port))
+    
