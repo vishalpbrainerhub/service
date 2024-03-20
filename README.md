@@ -1,5 +1,19 @@
 # Real-Time Transcription Service
 
+## Dockerfile
+
+ ```bash
+    docker build -t myapp .
+```
+
+```bash
+    docker run -p 3000:3000 myapp
+
+    or 
+
+    docker run -p 3000:3000 -e PORT=3000 -e MODEL_SIZE=base myapp
+```
+
 ---
 
 ## Description
