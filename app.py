@@ -15,7 +15,7 @@ app = Flask(__name__)
 class AudioTranscriptionService:
     
     def __init__(self):
-        self.model_size = "base"
+        self.model_size = os.environ.get("MODEL_SIZE", "base")
         self.device = "cpu"
         self.compute_type = "float32"
         # Initialize Whisper and Seamless models
@@ -116,7 +116,7 @@ def home():
 
 
 if __name__ == '__main__':
-    port = sys.argv[1] if len(sys.argv) > 1 else "3000"
-    model_size = sys.argv[2] if len(sys.argv) > 2 else "base"
+    port = os.environ.get("PORT", "3000")
+    # Read model size from environment variable (used if needed elsewhere)
+    model_size = os.environ.get("MODEL_SIZE", "base")
     app.run(debug=True, host="0.0.0.0", port=int(port))
-    

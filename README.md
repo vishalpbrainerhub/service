@@ -2,16 +2,18 @@
 
 ## Dockerfile
 
+Construct the image with the port and model of your preference.
  ```bash
-    docker build -t myapp .
+    docker build --build-arg PORT=8080 --build-arg MODEL_SIZE=base --tag image_name .
+
 ```
 
+
+Run the container on the selected port in the image.
+
 ```bash
-    docker run -p 3000:3000 myapp
+    docker run -p 8080:8080 image_name
 
-    or 
-
-    docker run -p 3000:3000 -e PORT=3000 -e MODEL_SIZE=base myapp
 ```
 
 ---
