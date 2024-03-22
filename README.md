@@ -1,26 +1,8 @@
 # Real-Time Transcription Service
 
-## Dockerfile
-
-Construct the image with the port and model of your preference.
- ```bash
-    docker build --build-arg PORT=8080 --build-arg MODEL_SIZE=base --tag image_name .
-
-```
-
-
-Run the container on the selected port in the image.
-
-```bash
-    docker run -p 8080:8080 image_name
-
-```
-
----
-
 ## Description
 
-This project is a real-time transcription service built using Flask, a lightweight WSGI web application framework. It allows users to transcribe audio files or base64-encoded audio data into text. The transcription is performed using a pre-trained model called Whisper, which is optimized for fast and efficient speech recognition. The service exposes two endpoints: one for transcribing audio files and another for transcribing base64-encoded audio data.
+This project is a real-time transcription service built using FastAPI, a modern, fast (high-performance), web framework for building APIs with Python 3.7+. It utilizes a pre-trained model called Whisper for efficient speech recognition. The service allows users to transcribe audio files or base64-encoded audio data into text.
 
 ---
 
@@ -28,20 +10,32 @@ This project is a real-time transcription service built using Flask, a lightweig
 
 ### 1. Install Dependencies
 
-- Ensure you have Python installed on your system.
+- Ensure you have Python 3.7+ installed on your system.
 - Install the required Python packages using pip:
     ```bash
     pip install -r requirements.txt
     ```
 
+### 2. Run the Service Locally
 
-### 2. Run the Service
-
-- Execute the `app.py` script to start the Flask server:
+- Execute the following command to start the server:
     ```bash
     python app.py
     ```
-- The service will now be accessible at `http://localhost:5000`.
+- The service will be default accessible at `http://localhost:3000`.
+
+### 3. Using Docker (Optional)
+
+- You can also run the service using Docker for easier deployment.
+- Build the Docker image with the desired configurations:
+    ```bash
+    docker build -t transcription-service .
+    ```
+- Run the Docker container:
+    ```bash
+    docker run -p 3000:3000 transcription-service
+    ```
+- The service will be available at `http://localhost:3000`.
 
 ---
 
@@ -100,3 +94,14 @@ This project is a real-time transcription service built using Flask, a lightweig
         ```
 
 ---
+
+
+## Test it
+
+ ```bash
+    python transcribe.py
+
+```
+
+---
+
