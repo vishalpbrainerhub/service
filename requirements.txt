@@ -5,3 +5,6 @@ fastapi
 uvicorn
 torch
 python-multipart
+aiofiles
+websockets
+pydub

@@ -3,10 +3,13 @@ import time
 import random
 import base64
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException,WebSocket
 from faster_whisper import WhisperModel
 import torch
 import uvicorn
+import aiofiles
+from pydub import AudioSegment
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -51,10 +54,24 @@ class AudioTranscriptionService:
 
             logging.info(f"Transcription took {time.time() - start_time:.2f} seconds")
             return {"transcription": data}
-
         except Exception as e:
             logging.error(f"Error during decoding and conversion: {e}")
             raise HTTPException(status_code=500, detail="Error during decoding and conversion")
+        
+    async def transcribe_audio_file_ws(self, audio_data_base64, websocket: WebSocket):
+        file_name = self.generate_file_name()
+        audio_data = base64.b64decode(audio_data_base64)
+        async with aiofiles.open(file_name, "wb") as file_object:
+            await file_object.write(audio_data)
+
+        await self.transcribe_in_chunks_ws(file_name, websocket)
+
+        try:
+            os.remove(file_name)
+        except Exception as e:
+            logging.error(f"Error during file removing: {e}")
+
+        
 
     async def transcribe_base64(self, audio_data_base64):
         """Transcribe base64-encoded audio data and return the transcription."""
@@ -90,9 +107,37 @@ class AudioTranscriptionService:
         except Exception as e:
             logging.error(f"Error during transcription: {e}")
             return ""
+        
+    async def transcribing_chunk_ws(self, temp_audio_path):
+        transcription_result = await asyncio.to_thread(
+            self.model.transcribe, temp_audio_path, beam_size=5
+        )
+        segments, _ = transcription_result
+        transcription = " ".join([segment.text for segment in segments])
+        logging.info(f"Transcription: {transcription}")
+        return transcription
+        
+    async def transcribe_in_chunks_ws(self, file_name, websocket: WebSocket):
+        audio = AudioSegment.from_file(file_name)
+        chunk_length_ms = 5000
+        chunks = [audio[i:i+chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
+
+        for chunk in chunks:
+            chunk_file_name = f"{file_name}_chunk.wav"
+            chunk.export(chunk_file_name, format="wav")
+            transcription = await self.transcribing_chunk_ws(chunk_file_name)
+            await websocket.send_text(transcription)
+            
+            os.remove(chunk_file_name)
 
 # Instantiate the service
 audio_transcription_service = AudioTranscriptionService()
+
+@app.websocket("/ws/transcribe")
+async def websocket_transcribe(websocket: WebSocket):
+    await websocket.accept()
+    data = await websocket.receive_text()  # Changed from receive_bytes to receive_text
+    await audio_transcription_service.transcribe_audio_file_ws(data, websocket)
 
 @app.post('/transcribe_file')
 async def transcribe_audio_file_route(audio_data: UploadFile = File(...)):
@@ -107,5 +152,5 @@ async def home():
     return "Real Time Transcription Service Running fastapi"
 
 if __name__ == '__main__':
-    port = os.environ.get("PORT", "3000")
+    port = os.environ.get("PORT", "8000")
     uvicorn.run(app, host="0.0.0.0", port=int(port))  
