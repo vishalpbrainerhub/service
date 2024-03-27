@@ -27,6 +27,7 @@ class AudioTranscriptionService:
         # Check if 'audio_sessions' folder exists, if not, create it
         if not os.path.exists(self.audio_sessions_folder):
             os.makedirs(self.audio_sessions_folder)
+        self.audio_file_path = os.path.join(self.audio_sessions_folder, "current_audio.wav")
 
         # Initialize Whisper model
         self.model = WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
@@ -130,6 +131,18 @@ class AudioTranscriptionService:
             
             os.remove(chunk_file_name)
 
+    async def append_audio_data(self, audio_data_base64: str):
+        audio_data = base64.b64decode(audio_data_base64)
+        async with aiofiles.open(self.audio_file_path, "ab") as audio_file:
+            await audio_file.write(audio_data)
+
+    async def transcribe_audio(self, websocket: WebSocket):
+        transcription_result = await asyncio.to_thread(self.model.transcribe, self.audio_file_path,beam_size=5)
+        segments, _ = transcription_result
+        transcription = " ".join([segment.text for segment in segments])
+        logging.info(transcription)
+        await websocket.send_text(transcription)
+
 # Instantiate the service
 audio_transcription_service = AudioTranscriptionService()
 
@@ -138,6 +151,28 @@ async def websocket_transcribe(websocket: WebSocket):
     await websocket.accept()
     data = await websocket.receive_text()  # Changed from receive_bytes to receive_text
     await audio_transcription_service.transcribe_audio_file_ws(data, websocket)
+
+
+@app.websocket("/ws/transcribe/realtime")
+async def websocket_transcribe(websocket: WebSocket):
+    await websocket.accept()
+    last_transcription_time = asyncio.get_event_loop().time()
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await audio_transcription_service.append_audio_data(data)
+
+            current_time = asyncio.get_event_loop().time()
+            if current_time - last_transcription_time >= 3: 
+                await audio_transcription_service.transcribe_audio(websocket)
+                last_transcription_time = current_time
+
+    except Exception as e:
+        logging.error("WebSocket error", exc_info=e)
+    finally:
+        os.remove(audio_transcription_service.audio_file_path)
+        logging.info("WebSocket connection closed")
 
 @app.post('/transcribe_file')
 async def transcribe_audio_file_route(audio_data: UploadFile = File(...)):
@@ -152,5 +187,5 @@ async def home():
     return "Real Time Transcription Service Running fastapi"
 
 if __name__ == '__main__':
-    port = os.environ.get("PORT", "8000")
+    port = os.environ.get("PORT", "3000")
     uvicorn.run(app, host="0.0.0.0", port=int(port))  

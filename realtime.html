@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Continuous Audio Recorder</title>
+  </head>
+  <body>
+    <button id="startRecord">Start Recording</button>
+    <button id="stopRecord">Stop Recording</button>
+    <div id="transcriptionOutput"></div>
+
+    <script>
+      let ws = new WebSocket("ws://localhost:3000/ws/transcribe/realtime");
+      let mediaRecorder;
+      const transcriptionOutput = document.getElementById(
+        "transcriptionOutput"
+      );
+
+      document
+        .getElementById("startRecord")
+        .addEventListener("click", function () {
+          navigator.mediaDevices
+            .getUserMedia({ audio: true })
+            .then((stream) => {
+              mediaRecorder = new MediaRecorder(stream);
+              mediaRecorder.start(3000); // Split the audio into chunks every 3 seconds
+
+              mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    ws.send(reader.result.split(",")[1]); // Send base64 audio data
+                  };
+                  console.log(event.data);
+                  reader.readAsDataURL(event.data);
+                }
+              };
+
+              document.getElementById("stopRecord").disabled = false;
+            })
+            .catch(console.error);
+          this.disabled = true;
+        });
+
+      document
+        .getElementById("stopRecord")
+        .addEventListener("click", function () {
+          if (mediaRecorder) {
+            mediaRecorder.stop();
+            ws.close();
+          }
+          this.disabled = true;
+          document.getElementById("startRecord").disabled = false;
+        });
+
+      ws.onmessage = function (event) {
+        // Create a new paragraph element for each transcription chunk
+        const p = document.createElement("p");
+        p.textContent = event.data;
+        transcriptionOutput.appendChild(p); // Append the paragraph to the transcription output
+
+        // Optionally, scroll to the bottom of the transcription output
+        transcriptionOutput.scrollTop = transcriptionOutput.scrollHeight;
+      };
+    </script>
+  </body>
+</html>
