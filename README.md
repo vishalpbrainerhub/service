@@ -8,6 +8,10 @@ This project is a real-time transcription service built using FastAPI, a modern,
 
 ## Setup Instructions
 
+### Clone the repo
+
+- https://github.com/vishalpbrainerhub/service
+
 ### 1. Install Dependencies
 
 - Ensure you have Python 3.7+ installed on your system.
@@ -22,7 +26,8 @@ This project is a real-time transcription service built using FastAPI, a modern,
     ```bash
     python app.py
     ```
-- The service will be default accessible at `http://localhost:3000`.
+- The service will be default accessible at `http://localhost:3000`
+
 
 ### 3. Using Docker (Optional)
 
@@ -54,6 +59,12 @@ This project is a real-time transcription service built using FastAPI, a modern,
     - **Method:** POST
     - **Request Body:** JSON object with key `audio_data` containing the base64-encoded audio data.
     - **Response:** JSON object containing the transcription result.
+
+3. **Using Odoo16:**
+
+    - switch to the ```dma_reports_whisper_mahendra``` branch
+    - Use the realtime service by starting ```Record```
+    - Auto - detecting language.
 
 ---
 
@@ -104,4 +115,3 @@ This project is a real-time transcription service built using FastAPI, a modern,
 ```
 
 ---
-
