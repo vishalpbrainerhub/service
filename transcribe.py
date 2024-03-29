@@ -14,6 +14,7 @@ def transcribe_audio(file_path):
     file_path (str): The path to the audio file to be transcribed.
     """
     url = 'http://localhost:3000/transcribe_file'
+ 
     with open(file_path, 'rb') as audio_file:
         files = {'audio_data': (file_path, audio_file, 'audio/wav')}
         try:

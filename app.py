@@ -31,6 +31,7 @@ class AudioTranscriptionService:
 
         # Initialize Whisper model
         self.model = WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
+        self.transcription_active = False
 
     def generate_file_name(self):
         """Generates a unique file name for storing audio files."""
@@ -58,20 +59,6 @@ class AudioTranscriptionService:
         except Exception as e:
             logging.error(f"Error during decoding and conversion: {e}")
             raise HTTPException(status_code=500, detail="Error during decoding and conversion")
-        
-    async def transcribe_audio_file_ws(self, audio_data_base64, websocket: WebSocket):
-        file_name = self.generate_file_name()
-        audio_data = base64.b64decode(audio_data_base64)
-        async with aiofiles.open(file_name, "wb") as file_object:
-            await file_object.write(audio_data)
-
-        await self.transcribe_in_chunks_ws(file_name, websocket)
-
-        try:
-            os.remove(file_name)
-        except Exception as e:
-            logging.error(f"Error during file removing: {e}")
-
         
 
     async def transcribe_base64(self, audio_data_base64):
@@ -108,28 +95,6 @@ class AudioTranscriptionService:
         except Exception as e:
             logging.error(f"Error during transcription: {e}")
             return ""
-        
-    async def transcribing_chunk_ws(self, temp_audio_path):
-        transcription_result = await asyncio.to_thread(
-            self.model.transcribe, temp_audio_path, beam_size=5
-        )
-        segments, _ = transcription_result
-        transcription = " ".join([segment.text for segment in segments])
-        logging.info(f"Transcription: {transcription}")
-        return transcription
-        
-    async def transcribe_in_chunks_ws(self, file_name, websocket: WebSocket):
-        audio = AudioSegment.from_file(file_name)
-        chunk_length_ms = 5000
-        chunks = [audio[i:i+chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
-
-        for chunk in chunks:
-            chunk_file_name = f"{file_name}_chunk.wav"
-            chunk.export(chunk_file_name, format="wav")
-            transcription = await self.transcribing_chunk_ws(chunk_file_name)
-            await websocket.send_text(transcription)
-            
-            os.remove(chunk_file_name)
 
     async def append_audio_data(self, audio_data_base64: str):
         audio_data = base64.b64decode(audio_data_base64)
@@ -141,37 +106,35 @@ class AudioTranscriptionService:
         segments, _ = transcription_result
         transcription = " ".join([segment.text for segment in segments])
         logging.info(transcription)
+        self.transcription_active = False
         await websocket.send_text(transcription)
 
 # Instantiate the service
 audio_transcription_service = AudioTranscriptionService()
 
+
 @app.websocket("/ws/transcribe")
 async def websocket_transcribe(websocket: WebSocket):
     await websocket.accept()
-    data = await websocket.receive_text()  # Changed from receive_bytes to receive_text
-    await audio_transcription_service.transcribe_audio_file_ws(data, websocket)
-
-
-@app.websocket("/ws/transcribe/realtime")
-async def websocket_transcribe(websocket: WebSocket):
-    await websocket.accept()
-    last_transcription_time = asyncio.get_event_loop().time()
+    transcription_service = AudioTranscriptionService()
 
     try:
         while True:
             data = await websocket.receive_text()
-            await audio_transcription_service.append_audio_data(data)
-
-            current_time = asyncio.get_event_loop().time()
-            if current_time - last_transcription_time >= 3: 
-                await audio_transcription_service.transcribe_audio(websocket)
-                last_transcription_time = current_time
+            await transcription_service.append_audio_data(data)
+            
+            if not transcription_service.transcription_active:
+                transcription_service.transcription_active = True
+                transcription = await transcription_service.transcribe_audio(websocket)
+                if transcription is not None:
+                    await websocket.send_text(str(transcription))
+                else:
+                    pass
 
     except Exception as e:
         logging.error("WebSocket error", exc_info=e)
     finally:
-        os.remove(audio_transcription_service.audio_file_path)
+        os.remove(transcription_service.audio_file_path)
         logging.info("WebSocket connection closed")
 
 @app.post('/transcribe_file')

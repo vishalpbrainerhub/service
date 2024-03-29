@@ -9,7 +9,7 @@
     <div id="transcriptionOutput"></div>
 
     <script>
-      let ws = new WebSocket("ws://localhost:3000/ws/transcribe/realtime");
+      let ws = new WebSocket("ws://localhost:3000/ws/transcribe");
       let mediaRecorder;
       const transcriptionOutput = document.getElementById(
         "transcriptionOutput"
