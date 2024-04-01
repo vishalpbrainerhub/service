@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-time Transcription App</title>
+    <style>
+        .container {
+        padding: 10px;
+        height: auto;
+        width: 70%;
+        margin: auto;
+        margin-top: 70px;
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,
+          rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+      }
+      .cont_btn {
+        width: 80%;
+        margin: auto;
+        margin-top: 20px;
+      }
+
+      button {
+        background-color: black;
+        color: aliceblue;
+        padding: 10px;
+        border-radius: 10px;
+      }
+      button:hover {
+        cursor: pointer;
+      }
+      .cont_btn button:nth-child(2) {
+        margin-left: 75%;
+      }
+
+      #ts1 {
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+      }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div>
+        <label for="language">Language:</label>
+        <select id="language">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <!-- Add more languages as needed -->
+        </select>
+    </div>
+    <div class="cont_btn">
+        <button id="startBtn">Start Recording</button>
+        <button id="stopBtn">Stop Recording</button>
+    </div>
+    <p id="ts1"></p>
+</div>
+<script>
+    let mediaRecorder;
+    let ws;  // WebSocket connection will be initialized when recording starts
+
+
+    document.getElementById("startBtn").onclick = async () => {
+        const language = document.getElementById("language").value;
+        ws = new WebSocket(`ws://localhost:8000/ws/transcribe?language=${language}`);
+
+        ws.onmessage = (event) => {
+            document.getElementById("ts1").innerText += " " + event.data;
+        };
+
+        ws.onopen = function(event) {
+          console.log("Connection opened");
+        };
+
+        ws.onclose = function(event) {
+            console.log("Connection closed by server");
+        };
+
+        ws.onerror = function(event) {
+            console.error("WebSocket error observed:", event);
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.start(5000);
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                ws.send(event.data);
+            }
+        };
+    };
+
+    document.getElementById("stopBtn").onclick = () => {
+        mediaRecorder.stop();
+        ws.close();
+    };
+</script>
+</body>
+</html>

@@ -149,6 +149,11 @@ async def transcribe_base64_route(audio_data_base64: str):
 async def home():
     return "Real Time Transcription Service Running fastapi"
 
-if __name__ == '__main__':
-    port = os.environ.get("PORT", "3000")
-    uvicorn.run(app, host="0.0.0.0", port=int(port))  
+# if __name__ == '__main__':
+#     port = os.environ.get("PORT", "3000")
+#     uvicorn.run(app, host="0.0.0.0", port=int(port))  
+
+
+
+#run using gunicorn
+# gunicorn main:app --workers 5  --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:3000

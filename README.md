@@ -24,9 +24,15 @@ This project is a real-time transcription service built using FastAPI, a modern,
 
 - Execute the following command to start the server:
     ```bash
-    python app.py
+    gunicorn main:app --workers 5  --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:3000
     ```
 - The service will be default accessible at `http://localhost:3000`
+
+- RUN server.py 
+- Copy client.html path
+- Start the service
+
+
 
 
 ### 3. Using Docker (Optional)
@@ -53,14 +59,8 @@ This project is a real-time transcription service built using FastAPI, a modern,
     - **Request Body:** Form-data with key `audio_data` containing the audio file to be transcribed.
     - **Response:** JSON object containing the transcription result.
 
-2. **Transcribe Base64 Data:**
 
-    - **Endpoint:** `/transcribe_base64`
-    - **Method:** POST
-    - **Request Body:** JSON object with key `audio_data` containing the base64-encoded audio data.
-    - **Response:** JSON object containing the transcription result.
-
-3. **Using Odoo16:**
+2. **Using Odoo16:**
 
     - switch to the ```dma_reports_whisper_mahendra``` branch
     - Use the realtime service by starting ```Record```
@@ -86,28 +86,16 @@ This project is a real-time transcription service built using FastAPI, a modern,
         }
         ```
 
-2. **Transcribe Base64 Data:**
-
-    - **Request:**
-        ```http
-        POST /transcribe_base64
-        Content-Type: application/json
-        
-        {
-            "audio_data": "base64_encoded_audio_data_here"
-        }
-        ```
-    - **Response:**
-        ```json
-        {
-            "transcription": "Transcribed text here..."
-        }
-        ```
 
 ---
 
 
 ## Test it
+
+ ```bash
+    cd Testing_data
+
+```
 
  ```bash
     python transcribe.py
